@@ -32,7 +32,7 @@ func makeBanner() -> [UInt8] {
 
     let cube = drawCube(into: &canvas, center: (350, 294), scale: 128)
     let lab = drawLabSlice(into: &canvas, origin: (630, 154), side: 280)
-    let wheel = drawOKLCHDisk(into: &canvas, center: (1220, 294), radius: 140)
+    let wheel = drawOKLCHDisk(into: &canvas, center: (1220, 294), radius: 140 * 1.65)
     let linkY = (cube.midY + lab.midY + wheel.midY) / 3
     drawArrow(centerX: (cube.maxX + lab.minX) / 2, y: linkY, into: &canvas)
     drawArrow(centerX: (lab.maxX + wheel.minX) / 2, y: linkY, into: &canvas)
@@ -134,6 +134,9 @@ private func drawCube(into canvas: inout Canvas, center: (Double, Double), scale
         let end = silhouette[(index + 1) % silhouette.count]
         stroke(start.0, start.1, end.0, end.1, width: 1.5, color: bannerMuted, into: &canvas)
     }
+    axisMark("G", red: 0, green: 1, blue: 0, dx: -22, dy: 6, project: project, into: &canvas)
+    axisMark("R", red: 1, green: 0, blue: 0, dx: 22, dy: 6, project: project, into: &canvas)
+    axisMark("B", red: 0, green: 0, blue: 1, dx: 0, dy: -18, project: project, into: &canvas)
     let corners = silhouette + [project(0, 0, 0), project(1, 1, 1)]
     return Bounds(
         minX: corners.map(\.0).min() ?? center.0,
@@ -150,12 +153,117 @@ private func drawLabSlice(into canvas: inout Canvas, origin: (Double, Double), s
         for x in 0..<side {
             let a = (Double(x) + 0.5) / Double(side) * span - span / 2
             let b = span / 2 - (Double(y) + 0.5) / Double(side) * span
-            let color = Color<Lab>(lightness: labLightness, a: a, b: b).converted(to: SRGB.self)
-            guard inGamut(color) else { continue }
+            let linear = Color<Lab>(lightness: labLightness, a: a, b: b).converted(to: LinearSRGB.self)
+            guard sampleInsideGamut(linear) else { continue }
             filled[y * side + x] = true
-            canvas.set(Int(origin.0) + x, Int(origin.1) + y, displayed(color))
+            let onA = isoline(a, span: span, side: side)
+            let onB = isoline(b, span: span, side: side)
+            let color = (onA || onB) ? bannerBackground : displayed(linear.converted(to: SRGB.self))
+            canvas.set(Int(origin.0) + x, Int(origin.1) + y, color)
         }
     }
+    return outlineGamut(filled, side: side, origin: origin, into: &canvas)
+}
+
+private func drawOKLCHDisk(into canvas: inout Canvas, center: (Double, Double), radius: Double) -> Bounds {
+    let chromaLimit = maximumOKLCHChroma(lightness: oklchLightness)
+    let margin = 2.0
+    let side = Int((radius + margin) * 2)
+    let origin = (center.0 - radius - margin, center.1 - radius - margin)
+    var filled = Array(repeating: false, count: side * side)
+    for y in 0..<side {
+        for x in 0..<side {
+            let dx = (Double(x) + 0.5) - (radius + margin)
+            let dy = (Double(y) + 0.5) - (radius + margin)
+            let distance = (dx * dx + dy * dy).squareRoot()
+            let chroma = distance / radius * chromaLimit
+            var hue = atan2(-dy, dx) * 180 / .pi
+            if hue < 0 { hue += 360 }
+            if hue >= 360 { hue = 0 }
+            let linear = Color<OKLCH>(
+                lightness: oklchLightness,
+                chroma: chroma,
+                hue: hue
+            ).converted(to: LinearSRGB.self)
+            guard sampleInsideGamut(linear) else { continue }
+            filled[y * side + x] = true
+            let onRing = chromaIsoline(chroma, limit: chromaLimit, radius: radius)
+            let onSpoke = polarSpoke(hue, distance: distance)
+            let color = (onRing || onSpoke) ? bannerBackground : displayed(linear.converted(to: SRGB.self))
+            canvas.set(Int(origin.0) + x, Int(origin.1) + y, color)
+        }
+    }
+    return outlineGamut(filled, side: side, origin: origin, into: &canvas)
+}
+
+private func maximumOKLCHChroma(lightness: Double) -> Double {
+    var peak = 0.0
+    for step in 0..<360 {
+        let hue = Double(step)
+        var low = 0.0
+        var high = 0.4
+        for _ in 0..<18 {
+            let chroma = (low + high) / 2
+            let linear = Color<OKLCH>(lightness: lightness, chroma: chroma, hue: hue).converted(to: LinearSRGB.self)
+            if containsSRGBGamut(linear) {
+                low = chroma
+            } else {
+                high = chroma
+            }
+        }
+        if low > peak { peak = low }
+    }
+    return peak
+}
+
+private let isolineWidth = 1.05
+private let oklchGridWidth = 0.85
+
+private func isoline(_ value: Double, span: Double, side: Int) -> Bool {
+    let step = 15.0
+    let nearest = (value / step).rounded() * step
+    guard abs(nearest) < span / 2 - step * 0.5 else { return false }
+    let pixels = abs(value - nearest) / span * Double(side)
+    return pixels < isolineWidth
+}
+
+private func chromaIsoline(_ chroma: Double, limit: Double, radius: Double) -> Bool {
+    let step = 0.025
+    let nearest = (chroma / step).rounded() * step
+    guard nearest >= step * 0.5, nearest < limit - step * 0.25 else { return false }
+    let pixels = abs(chroma - nearest) / limit * radius
+    return pixels < oklchGridWidth
+}
+
+private func axisMark(
+    _ text: String,
+    red: Double,
+    green: Double,
+    blue: Double,
+    dx: Double,
+    dy: Double,
+    project: (Double, Double, Double) -> (Double, Double),
+    into canvas: inout Canvas
+) {
+    let point = project(red, green, blue)
+    let size = 18.0
+    let width = geistRegular.measure(text, size: size)
+    geistRegular.draw(
+        text,
+        x: point.0 + dx - width / 2,
+        baseline: point.1 + dy,
+        size: size,
+        color: bannerMuted,
+        into: &canvas
+    )
+}
+
+private func outlineGamut(
+    _ filled: [Bool],
+    side: Int,
+    origin: (Double, Double),
+    into canvas: inout Canvas
+) -> Bounds {
     var minX = side
     var maxX = 0
     var minY = side
@@ -163,7 +271,7 @@ private func drawLabSlice(into canvas: inout Canvas, origin: (Double, Double), s
     for y in 0..<side {
         for x in 0..<side {
             let index = y * side + x
-            guard !filled[index] else {
+            if filled[index] {
                 minX = min(minX, x)
                 maxX = max(maxX, x)
                 minY = min(minY, y)
@@ -188,66 +296,27 @@ private func drawLabSlice(into canvas: inout Canvas, origin: (Double, Double), s
     )
 }
 
-private func drawOKLCHDisk(into canvas: inout Canvas, center: (Double, Double), radius: Double) -> Bounds {
-    let chroma = oklchChromaByHue(lightness: oklchLightness)
-    let side = Int(radius * 2)
-    let originX = center.0 - radius
-    let originY = center.1 - radius
-    for y in 0..<side {
-        for x in 0..<side {
-            let dx = (Double(x) + 0.5) - radius
-            let dy = (Double(y) + 0.5) - radius
-            let distance = (dx * dx + dy * dy).squareRoot()
-            guard distance <= radius else { continue }
-            var hue = atan2(-dy, dx) * 180 / .pi
-            if hue < 0 { hue += 360 }
-            if hue >= 360 { hue = 0 }
-            let index = min(359, Int(hue.rounded(.down)))
-            let color = Color<OKLCH>(
-                lightness: oklchLightness,
-                chroma: distance / radius * chroma[index],
-                hue: hue
-            ).converted(to: SRGB.self)
-            canvas.set(Int(originX) + x, Int(originY) + y, displayed(color))
-        }
-    }
-    strokeRing(
-        center.0,
-        center.1,
-        radius: radius + 1.2,
-        thickness: 0.75,
-        color: bannerMuted,
-        into: &canvas
-    )
-    return Bounds(
-        minX: originX,
-        maxX: originX + Double(side),
-        minY: originY,
-        maxY: originY + Double(side)
-    )
+private func polarSpoke(_ hue: Double, distance: Double) -> Bool {
+    let step = 30.0
+    var delta = abs(hue - (hue / step).rounded() * step)
+    if delta > 180 { delta = 360 - delta }
+    return distance * delta * .pi / 180 < oklchGridWidth
 }
 
-private func oklchChromaByHue(lightness: Double) -> [Double] {
-    (0..<360).map { step in
-        let hue = Double(step)
-        var low = 0.0
-        var high = 0.37
-        for _ in 0..<16 {
-            let chroma = (low + high) / 2
-            let color = Color<OKLCH>(lightness: lightness, chroma: chroma, hue: hue).converted(to: SRGB.self)
-            if inGamut(color) {
-                low = chroma
-            } else {
-                high = chroma
-            }
-        }
-        return low
-    }
-}
-
-private func inGamut(_ color: Color<SRGB>) -> Bool {
+/// Linear-light sRGB gamut: the closed unit cube. The IEC transfer maps that
+/// cube onto encoded sRGB, so the two descriptions are the same set.
+private func containsSRGBGamut(_ color: Color<LinearSRGB>) -> Bool {
     let channels = [color.red, color.green, color.blue]
-    return channels.allSatisfy { $0 >= -0.001 && $0 <= 1.001 }
+    return channels.allSatisfy { $0 >= 0 && $0 <= 1 }
+}
+
+/// Extra room for a pixel sample that lands on the boundary. This is not part
+/// of the gamut test. Ordinary conversions round-trip to about 1e-7.
+private let rasterSampleSlack = 1e-8
+
+private func sampleInsideGamut(_ color: Color<LinearSRGB>) -> Bool {
+    let channels = [color.red, color.green, color.blue]
+    return channels.allSatisfy { $0 >= -rasterSampleSlack && $0 <= 1 + rasterSampleSlack }
 }
 
 private func displayed(_ color: Color<SRGB>) -> RGBA {
@@ -317,27 +386,6 @@ private func strokeSegment(
     }
 }
 
-private func strokeRing(
-    _ cx: Double, _ cy: Double, radius: Double, thickness: Double,
-    color: RGBA, into canvas: inout Canvas
-) {
-    let pad = thickness + 1
-    let minX = Int((cx - radius - pad).rounded(.down))
-    let maxX = Int((cx + radius + pad).rounded(.up))
-    let minY = Int((cy - radius - pad).rounded(.down))
-    let maxY = Int((cy + radius + pad).rounded(.up))
-    for y in minY...maxY {
-        for x in minX...maxX {
-            let dx = Double(x) + 0.5 - cx
-            let dy = Double(y) + 0.5 - cy
-            let distance = abs((dx * dx + dy * dy).squareRoot() - radius)
-            let coverage = thickness + 0.5 - distance
-            if coverage > 0 {
-                canvas.blend(x, y, color, coverage: coverage)
-            }
-        }
-    }
-}
 private func distanceToSegment(
     _ px: Double, _ py: Double,
     _ x0: Double, _ y0: Double, _ x1: Double, _ y1: Double
