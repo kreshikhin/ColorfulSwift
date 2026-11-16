@@ -29,7 +29,7 @@ The package builds for macOS, iOS, tvOS, watchOS, visionOS, Linux, and Windows.
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/kreshikhin/ColorfulSwift.git", from: "1.0.0")
+    .package(url: "https://github.com/kreshikhin/ColorfulSwift.git", from: "0.1.0")
 ]
 ```
 
@@ -39,7 +39,7 @@ dependencies: [
 ])
 ```
 
-Versions follow [semantic versioning](https://semver.org). The tag `v1.2.3` is release `1.2.3`.
+Versions follow [semantic versioning](https://semver.org). The first release is `0.1.0`, from the tag `v0.1.0`.
 
 ## Usage
 
