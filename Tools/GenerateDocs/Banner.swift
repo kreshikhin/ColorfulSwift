@@ -4,40 +4,21 @@ import Foundation
 private let bannerWidth = 1600
 private let bannerHeight = 600
 private let bannerBackground = RGBA(r: 13, g: 17, b: 23)
-private let bannerTitle = RGBA(r: 240, g: 246, b: 252)
 private let bannerMuted = RGBA(r: 139, g: 148, b: 158)
 private let labLightness = 55.0
 private let oklchLightness = 0.70
-private let geistSemiBold = TrueTypeFont.load(named: "Geist-SemiBold.ttf")
 private let geistRegular = TrueTypeFont.load(named: "Geist-Regular.ttf")
 
 func makeBanner() -> [UInt8] {
     var canvas = Canvas(width: bannerWidth, height: bannerHeight, fill: bannerBackground)
-    geistSemiBold.draw(
-        "ColorfulSwift",
-        x: 72,
-        baseline: 78,
-        size: 52,
-        color: bannerTitle,
-        into: &canvas
-    )
-    geistRegular.draw(
-        "Color spaces, in pure Swift.",
-        x: 74,
-        baseline: 114,
-        size: 22,
-        color: bannerMuted,
-        into: &canvas
-    )
-
-    let cube = drawCube(into: &canvas, center: (350, 294), scale: 128)
-    let lab = drawLabSlice(into: &canvas, origin: (630, 154), side: 280)
-    let wheel = drawOKLCHDisk(into: &canvas, center: (1220, 294), radius: 140 * 1.65)
+    let cube = drawCube(into: &canvas, center: (350, 258), scale: 128)
+    let lab = drawLabSlice(into: &canvas, origin: (630, 118), side: 280)
+    let wheel = drawOKLCHDisk(into: &canvas, center: (1220, 258), radius: 140 * 1.65)
     let linkY = (cube.midY + lab.midY + wheel.midY) / 3
     drawArrow(centerX: (cube.maxX + lab.minX) / 2, y: linkY, into: &canvas)
     drawArrow(centerX: (lab.maxX + wheel.minX) / 2, y: linkY, into: &canvas)
 
-    let labelBaseline = 486.0
+    let labelBaseline = 450.0
     drawCentered("sRGB", around: cube.midX, baseline: labelBaseline, size: 22, into: &canvas)
     drawCentered("CIELAB", around: lab.midX, baseline: labelBaseline, size: 22, into: &canvas)
     drawCentered("L* = 55", around: lab.midX, baseline: labelBaseline + 26, size: 16, into: &canvas)
