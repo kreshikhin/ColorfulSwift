@@ -17,6 +17,16 @@ let package = Package(
     ],
     targets: [
         .target(name: "Colorful"),
+        .executableTarget(
+            name: "GenerateDocs",
+            dependencies: ["Colorful"],
+            path: "Tools/GenerateDocs"
+        ),
+        .executableTarget(
+            name: "ColorfulExamples",
+            dependencies: ["Colorful"],
+            path: "Examples"
+        ),
         .testTarget(name: "ColorfulTests", dependencies: ["Colorful"]),
     ],
     swiftLanguageModes: [.v6]

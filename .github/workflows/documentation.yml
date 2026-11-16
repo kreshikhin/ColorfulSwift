@@ -1,0 +1,26 @@
+name: Documentation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Generated docs
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: swift build -Xswiftc -warnings-as-errors -Xswiftc -strict-concurrency=complete
+      - name: Test
+        run: swift test -Xswiftc -warnings-as-errors -Xswiftc -strict-concurrency=complete
+      - name: Check generated docs
+        run: swift run GenerateDocs -- --check
+      - name: Run examples
+        run: swift run ColorfulExamples
+      - name: Working tree is unchanged
+        run: git diff --exit-code

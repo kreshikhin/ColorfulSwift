@@ -37,7 +37,7 @@ jobs:
             "generic/platform=macOS,variant=Mac Catalyst"
           do
             xcodebuild \
-              -scheme ColorfulSwift \
+              -scheme Colorful \
               -destination "$destination" \
               -skipMacroValidation \
               -skipPackagePluginValidation \

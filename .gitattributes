@@ -1,0 +1,4 @@
+*.png binary
+README.md text eol=lf
+Documentation/**/*.md text eol=lf
+Sources/Colorful/Colorful.docc/**/*.md text eol=lf

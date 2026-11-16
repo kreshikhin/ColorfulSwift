@@ -45,6 +45,13 @@ connection space, so a new ``ColorSpace`` only has to convert to and from that.
 - ``ColorProtocol/contrastRatio(against:)``
 - ``Color/relativeLuminance``
 
+### Guides
+
+- <doc:Conversions>
+- <doc:Interpolation>
+- <doc:Contrast>
+- <doc:Difference>
+
 ### Conventions
 
 - <doc:MathematicalConventions>
