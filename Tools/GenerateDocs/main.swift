@@ -35,13 +35,27 @@ private func run() throws {
 
     let snippets = try loadSnippets(root: root)
     let docs = buildDocs(catalog: makeCatalog(), snippets: snippets)
-    precondition(
-        !docs.readmeBody.contains("<!-- END GENERATED EXAMPLES -->"),
-        "Generated README body contains the closing marker"
-    )
+    for body in [docs.readmeUsage, docs.readmeExamples] {
+        precondition(!body.contains("<!--"), "Generated README text contains a marker")
+    }
 
     var stale: [String] = []
-    try updateReadme(root: root, body: docs.readmeBody, check: check, stale: &stale)
+    try updateReadme(
+        root: root,
+        beginToken: "<!-- BEGIN GENERATED USAGE -->",
+        endToken: "<!-- END GENERATED USAGE -->",
+        body: docs.readmeUsage,
+        check: check,
+        stale: &stale
+    )
+    try updateReadme(
+        root: root,
+        beginToken: "<!-- BEGIN GENERATED EXAMPLES -->",
+        endToken: "<!-- END GENERATED EXAMPLES -->",
+        body: docs.readmeExamples,
+        check: check,
+        stale: &stale
+    )
     for file in docs.texts {
         try updateText(root: root, relativePath: file.relativePath, text: file.text, check: check, stale: &stale)
     }
@@ -103,21 +117,26 @@ private func require(_ snippet: String, file: String, contains needle: String) t
     }
 }
 
-private func updateReadme(root: URL, body: String, check: Bool, stale: inout [String]) throws {
+private func updateReadme(
+    root: URL,
+    beginToken: String,
+    endToken: String,
+    body: String,
+    check: Bool,
+    stale: inout [String]
+) throws {
     let url = root.appendingPathComponent("README.md")
     let original = try readText(url)
-    let beginToken = "<!-- BEGIN GENERATED EXAMPLES -->"
-    let endToken = "<!-- END GENERATED EXAMPLES -->"
     guard let begin = original.range(of: beginToken),
           original.range(of: beginToken, range: begin.upperBound..<original.endIndex) == nil,
           let end = original.range(of: endToken, range: begin.upperBound..<original.endIndex),
           original.range(of: endToken, range: end.upperBound..<original.endIndex) == nil,
           begin.upperBound <= end.lowerBound
     else {
-        throw GeneratorError("README.md is missing the generated-examples markers")
+        throw GeneratorError("README.md is missing \(beginToken)")
     }
     let updated = original[..<begin.upperBound] + "\n\n" + body + "\n\n" + original[end.lowerBound...]
-    try store(url, relativePath: "README.md", bytes: Array(updated.utf8), check: check, stale: &stale)
+    try store(url, relativePath: "README.md", bytes: Array(String(updated).utf8), check: check, stale: &stale)
 }
 
 private func updateText(root: URL, relativePath: String, text: String, check: Bool, stale: inout [String]) throws {

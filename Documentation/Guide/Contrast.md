@@ -1,10 +1,8 @@
 # Contrast
 
-`contrastRatio(against:)` converts both colors to opaque sRGB and returns the WCAG 2 ratio `(L1 + 0.05) / (L2 + 0.05)`. Black on white is `21`.
+`contrastRatio(against:)` is the WCAG 2 contrast ratio of two opaque colors. Black on white is `21`.
 
-<img src="../Images/contrast.png" alt="Four WCAG contrast samples. Aa is the foreground color on the background, and the caption is the contrast ratio." width="548">
-
-The letters are the foreground. The caption is the ratio, drawn in ink so it stays readable when the sample itself fails contrast.
+<img src="../Images/contrast.png" alt="WCAG 2 contrast samples." width="548">
 
 | Pair | Ratio |
 | --- | --- |
@@ -23,6 +21,6 @@ let white = Color<SRGB>(red: 1, green: 1, blue: 1)
 let ratio = gray.contrastRatio(against: white)
 ```
 
-`#767676` on white is `4.54:1`. WCAG defines the ratio for in-gamut sRGB. Out-of-gamut channels are not clamped and can produce a ratio outside `1...21`.
+`#767676` on white is `4.54:1`.
 
 See also [Conversions](Conversions.md), [Interpolation](Interpolation.md), [Difference](Difference.md).

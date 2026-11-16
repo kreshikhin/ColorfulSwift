@@ -1,8 +1,8 @@
 # Difference
 
-``ColorProtocol/deltaE76(to:)`` is the Euclidean distance in CIELAB. It is not CIEDE2000.
+``ColorProtocol/deltaE76(to:)`` is the CIE76 distance in CIELAB.
 
-![Three sRGB pairs with their CIE76 distances, from a close gray pair to blue against yellow.](difference.png)
+![CIE76 distance for three color pairs.](difference.png)
 
 | Pair | ΔE76 |
 | --- | --- |
@@ -15,7 +15,5 @@ let red = Color<SRGB>(red: 1, green: 0, blue: 0)
 let orange = Color<SRGB>(red: 1, green: 0.5, blue: 0)
 let difference = red.deltaE76(to: orange)
 ```
-
-Red against orange is the middle pair. A small step in encoded gray is a small CIE76 distance. Blue against yellow is large because their `a*` and `b*` point in opposite directions.
 
 The formulas are in <doc:MathematicalConventions>.

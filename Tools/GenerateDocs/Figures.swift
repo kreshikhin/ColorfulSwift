@@ -31,6 +31,8 @@ struct Catalog {
     var interpolationCaption: String
     var lightnessCaption: String
     var hueCaption: String
+    var oklchRedHue: String
+    var oklchGreenHue: String
     var contrastSamples: [ContrastSample]
     var differenceSamples: [DifferenceSample]
     var coordinateRows: [[String]]
@@ -149,32 +151,34 @@ func makeCatalog() -> Catalog {
     return Catalog(
         interpolation: figure(
             "interpolation",
-            alt: "Thirteen-step blend from red to green in sRGB, OKLab, and OKLCH. The sRGB row turns olive. The OKLCH row stays saturated.",
+            alt: "Red to green in sRGB, OKLab, and OKLCH.",
             canvas: interpolation
         ),
         lightness: figure(
             "lightness",
-            alt: "Gray ramps from black to white in linear light, encoded sRGB, and OKLab. Linear light jumps to light gray. OKLab keeps even steps.",
+            alt: "Equal steps from black to white in linear sRGB, encoded sRGB, and OKLab.",
             canvas: lightness
         ),
         hue: figure(
             "hue",
-            alt: "Hue strips for CIELCH and OKLCH at fixed lightness and chroma. Each tile is one step around the wheel.",
+            alt: "CIELCH and OKLCH hue strips.",
             canvas: hue
         ),
         contrast: figure(
             "contrast",
-            alt: "Four WCAG contrast samples. Aa is the foreground color on the background, and the caption is the contrast ratio.",
+            alt: "WCAG 2 contrast samples.",
             canvas: contrast
         ),
         difference: figure(
             "difference",
-            alt: "Three sRGB pairs with their CIE76 distances, from a close gray pair to blue against yellow.",
+            alt: "CIE76 distance for three color pairs.",
             canvas: difference
         ),
-        interpolationCaption: "sRGB red to sRGB green, \(interpolationSteps) steps. Encoded sRGB passes through olive. OKLab mixes the opponent axes. OKLCH keeps the chroma and takes the short hue arc from \(formatFixed(redHue, fractionDigits: 1))° to \(formatFixed(greenHue, fractionDigits: 1))°, so the middle stays yellow.",
-        lightnessCaption: "Each row takes \(lightnessSteps) equal steps from 0 to 1. Linear light crushes the darks into the first tile and then jumps toward white. Encoded sRGB spreads the same numbers evenly across the file. OKLab lightness follows the ramp you see.",
-        hueCaption: "CIELCH at L* = \(formatFixed(lchLightness, fractionDigits: 0)) and C* = \(formatFixed(lchChroma, fractionDigits: 0)). OKLCH at L = \(formatFixed(oklchLightness, fractionDigits: 2)) and C = \(formatFixed(oklchChroma, fractionDigits: 3)). Twenty-four hues run from 0° up to, but not including, 360°. Chroma is the largest step that stays inside the sRGB cube.",
+        interpolationCaption: "Red to green in sRGB, OKLab, and OKLCH.",
+        lightnessCaption: "Equal steps from 0 to 1 in linear sRGB, encoded sRGB, and OKLab.",
+        hueCaption: "CIELCH at L* = \(formatFixed(lchLightness, fractionDigits: 0)) and C* = \(formatFixed(lchChroma, fractionDigits: 0)). OKLCH at L = \(formatFixed(oklchLightness, fractionDigits: 2)) and C = \(formatFixed(oklchChroma, fractionDigits: 3)).",
+        oklchRedHue: formatFixed(redHue, fractionDigits: 1),
+        oklchGreenHue: formatFixed(greenHue, fractionDigits: 1),
         contrastSamples: contrastSamples,
         differenceSamples: differenceSamples,
         coordinateRows: coordinateRows(for: coral, restored: restored),
