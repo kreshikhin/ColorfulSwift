@@ -100,9 +100,12 @@ struct RoundTripTests {
     }
 
     @Test func neutralLabHasNoHue() {
+        // Lab and LCH meet in XYZ, so a neutral round trip is not bit-exact.
+        // Windows libm can leave a residual chroma. Hue stays nil while that
+        // residual is within the achromatic threshold.
         let lch = Color<Lab>(lightness: 30, a: 0, b: 0).converted(to: LCH.self)
         #expect(lch.hue == nil)
-        expectApprox(lch.chroma, 0, tolerance: 0)
+        #expect(lch.chroma <= LCH.achromaticChroma)
     }
 
     @Test func componentsAreNotClamped() {
