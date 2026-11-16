@@ -20,7 +20,8 @@ let package = Package(
         .executableTarget(
             name: "GenerateDocs",
             dependencies: ["Colorful"],
-            path: "Tools/GenerateDocs"
+            path: "Tools/GenerateDocs",
+            exclude: ["Fonts"]
         ),
         .executableTarget(
             name: "ColorfulExamples",

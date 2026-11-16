@@ -16,6 +16,23 @@ struct Canvas {
         self.pixels = Array(repeating: fill, count: width * height)
     }
 
+    mutating func set(_ x: Int, _ y: Int, _ color: RGBA) {
+        guard x >= 0, y >= 0, x < width, y < height else { return }
+        pixels[y * width + x] = color
+    }
+
+    mutating func blend(_ x: Int, _ y: Int, _ color: RGBA, coverage: Double) {
+        guard coverage > 0, x >= 0, y >= 0, x < width, y < height else { return }
+        let cover = coverage > 1 ? 1.0 : coverage
+        let index = y * width + x
+        let destination = pixels[index]
+        pixels[index] = RGBA(
+            r: mixChannel(destination.r, color.r, cover),
+            g: mixChannel(destination.g, color.g, cover),
+            b: mixChannel(destination.b, color.b, cover)
+        )
+    }
+
     mutating func fill(_ x: Int, _ y: Int, _ w: Int, _ h: Int, _ color: RGBA) {
         let x0 = max(0, x)
         let y0 = max(0, y)
@@ -88,6 +105,37 @@ struct Canvas {
         png.append(contentsOf: pngChunk("IEND", []))
         return png
     }
+
+    func pngTruecolor() -> [UInt8] {
+        var raw = [UInt8]()
+        raw.reserveCapacity((width * 3 + 1) * height)
+        for y in 0..<height {
+            raw.append(0)
+            let start = y * width
+            for pixel in pixels[start..<(start + width)] {
+                raw.append(pixel.r)
+                raw.append(pixel.g)
+                raw.append(pixel.b)
+            }
+        }
+
+        var ihdr = [UInt8]()
+        appendBigEndian(UInt32(width), to: &ihdr)
+        appendBigEndian(UInt32(height), to: &ihdr)
+        ihdr.append(contentsOf: [8, 2, 0, 0, 0])
+
+        let compressed = zlibWrap(uncompressed: raw, deflate: deflate(raw))
+        var png = [UInt8](PNG.signature)
+        png.append(contentsOf: pngChunk("IHDR", ihdr))
+        png.append(contentsOf: pngChunk("IDAT", compressed))
+        png.append(contentsOf: pngChunk("IEND", []))
+        return png
+    }
+}
+
+private func mixChannel(_ destination: UInt8, _ source: UInt8, _ coverage: Double) -> UInt8 {
+    let value = Double(destination) + (Double(source) - Double(destination)) * coverage
+    return UInt8(Int(value.rounded()))
 }
 
 enum Font {

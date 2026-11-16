@@ -65,7 +65,9 @@ func buildDocs(catalog: Catalog, snippets: Snippets) -> BuiltDocs {
         TextFile(relativePath: "Sources/Colorful/Colorful.docc/Articles/Difference.md", text: differencePage(.docc, catalog, snippets)),
     ]
     let figures = [catalog.interpolation, catalog.lightness, catalog.hue, catalog.contrast, catalog.difference]
-    var images: [ImageFile] = []
+    var images: [ImageFile] = [
+        ImageFile(relativePath: "Documentation/Images/banner.png", png: makeBanner()),
+    ]
     for figure in figures {
         images.append(ImageFile(relativePath: "Documentation/Images/\(figure.name).png", png: figure.png))
         images.append(ImageFile(relativePath: "Documentation/Wiki/images/\(figure.name).png", png: figure.png))

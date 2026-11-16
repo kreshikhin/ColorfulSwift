@@ -3,6 +3,8 @@
 [![CI](https://github.com/kreshikhin/ColorfulSwift/actions/workflows/ci.yml/badge.svg)](https://github.com/kreshikhin/ColorfulSwift/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+<img src="Documentation/Images/banner.png" alt="ColorfulSwift. An sRGB cube, a CIELAB slice at L* = 55, and an OKLCH wheel at L = 0.70 with chroma running out to the sRGB gamut." width="1600">
+
 A lightweight, cross-platform Swift library for color space conversions and color calculations.
 
 ColorfulSwift provides strongly typed colors, conversions between common color spaces, interpolation, color difference calculations, and WCAG contrast ratios.
